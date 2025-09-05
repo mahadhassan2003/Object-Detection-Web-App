@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Object Detection App</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-brand">
+                <img src="/static/logo-128tech.png" alt="128 Technologies" class="navbar-logo">
+                <span class="navbar-text">128 Technologies</span>
+            </div>
+            <div class="navbar-actions">
+                <button onclick="logout()" class="logout-button" title="Logout">Logout</button>
+                <div class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode"></div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="header-section">
+            <h1>Object Detection Web App</h1>
+        </div>
+        <div class="form-container">
+            <div class="form-group">
+                <label for="model_name">Model Name:</label>
+                <select id="model_name" required>
+                    <option value="yolov8n">YOLOv8n</option>
+                    <option value="yolov8s">YOLOv8s</option>
+                    <option value="yolov8m">YOLOv8m</option>
+                    <option value="yolov8l">YOLOv8l</option>
+                    <option value="yolov8x">YOLOv8x</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="ref_images">Reference Images:</label>
+                <input type="file" id="ref_images" multiple accept="image/*" required>
+            </div>
+
+            <div class="form-group">
+                <label for="val_images">Validation Images:</label>
+                <input type="file" id="val_images" multiple accept="image/*" required>
+            </div>
+
+            <div class="form-group">
+                <label for="val_labels">Validation Labels (comma-separated 0s and 1s):</label>
+                <input type="text" id="val_labels" placeholder="e.g., 1,1,0,0" required>
+            </div>
+
+            <div class="form-group">
+                <label for="class_name">Class to Detect:</label>
+                <select id="class_name" required>
+                    <option value="">Select a class</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="threshold">Similarity Threshold (0.0-1.0):</label>
+                <input type="number" id="threshold" step="0.1" min="0" max="1" value="0.8" required>
+            </div>
+
+            <div class="form-group">
+                <label for="resize_size">Resize Size (square, e.g., 224 for 224x224):</label>
+                <input type="number" id="resize_size" min="1" value="224" required>
+            </div>
+
+            <div class="form-group">
+                <label for="norm_mean">Normalization Mean (3 comma-separated values):</label>
+                <input type="text" id="norm_mean" value="0.485,0.456,0.406" placeholder="e.g., 0.485,0.456,0.406" required>
+            </div>
+
+            <div class="form-group">
+                <label for="norm_std">Normalization Std (3 comma-separated values):</label>
+                <input type="text" id="norm_std" value="0.229,0.224,0.225" placeholder="e.g., 0.229,0.224,0.225" required>
+            </div>
+
+            <div class="form-group" style="grid-column: 1 / -1;">
+                <button onclick="processImages()">Process Images</button>
+            </div>
+        </div>
+
+        <div class="webcam-container">
+            <h2>Webcam Feed</h2>
+            <div class="video-container">
+                <video id="webcam" autoplay playsinline></video>
+                <canvas id="overlay-canvas"></canvas>
+            </div>
+            <img id="annotated-frame" alt="Annotated frame">
+            <canvas id="canvas" style="display: none;"></canvas>
+            <div class="webcam-controls">
+                <button id="startWebcam" onclick="startWebcam()">Start Webcam</button>
+                <button id="stopWebcam" onclick="stopWebcam()" disabled>Stop Webcam</button>
+                <button id="fullscreenWebcam" onclick="toggleFullscreen()" disabled>Fullscreen</button>
+            </div>
+            <div class="status-grid">
+                <div class="status-item">
+                    <div class="status-label">Webcam Status</div>
+                    <div class="status-value" id="webcam-status">Stopped</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Debug Info</div>
+                    <div class="status-value" id="debug-info">N/A</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="progress-container">
+            <label for="progress">Processing Progress:</label>
+            <progress id="progress" value="0" max="100"></progress>
+            <span id="progress-text">0%</span>
+        </div>
+
+        <div class="output-container">
+            <h2>Output Logs</h2>
+            <pre id="logs"></pre>
+            <h2>Metrics</h2>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">mAP</div>
+                    <div class="metric-value" id="map">N/A</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Precision</div>
+                    <div class="metric-value" id="precision">N/A</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Accuracy</div>
+                    <div class="metric-value" id="accuracy">N/A</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-copyright">
+                <p>&copy; Copyright 128 Technologies</p>
+            </div>
+            <div class="footer-links">
+                <a href="mailto:info@128technologies.com.pk" class="footer-link" title="Email us">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                        <polyline points="22,6 12,13 2,6"/>
+                    </svg>
+                    <span>info@128technologies.com.pk</span>
+                </a>
+                <a href="https://www.linkedin.com/company/128-technologies/posts/?feedView=all" target="_blank" class="footer-link" title="Follow us on LinkedIn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
+                        <rect x="2" y="9" width="4" height="12"/>
+                        <circle cx="4" cy="4" r="2"/>
+                    </svg>
+                    <span>LinkedIn</span>
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Fullscreen overlay -->
+    <div id="fullscreen-overlay" class="fullscreen-overlay">
+        <div class="fullscreen-close" onclick="exitFullscreen()">&times;</div>
+        <div class="fullscreen-content">
+            <div class="fullscreen-video-container">
+                <video id="fullscreen-webcam" class="fullscreen-video" autoplay playsinline style="display: none;"></video>
+                <canvas id="fullscreen-overlay-canvas" class="fullscreen-overlay"></canvas>
+            </div>
+            <img id="fullscreen-annotated-frame" class="fullscreen-img" alt="Fullscreen annotated frame" style="display: none;">
+            <div class="fullscreen-controls">
+                <button onclick="exitFullscreen()">Exit Fullscreen</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
