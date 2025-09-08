@@ -28,11 +28,11 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Database configuration
 DB_CONFIG = {
-    "host": "localhost",
-    "database": "Data", 
-    "user": "postgres",
-    "password": "Mahad@6225425",
-    "port": "5432"
+    "host": "",
+    "database": "", 
+    "user": "",
+    "password": "",
+    "port": ""
 }
 
 # JWT Secret key (in production, use environment variable)
